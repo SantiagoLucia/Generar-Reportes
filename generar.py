@@ -40,33 +40,28 @@ def comprimir():
             for file_path in PATH.glob(pattern):
                 zip_.write(file_path.name)
 
-def create_process(sql_path, format_, process_list):
-        process = mp.Process(target=generar_reporte, args=(sql_path, format_,))
-        process_list.append(process)
-        process.start()
 
 if __name__ == "__main__":
     
     args = obtener_args()
-    processes = []
 
     tiempo_inicio = datetime.now()
     print(f"hora inicio: {tiempo_inicio.strftime('%H:%M')}")
-  
-    if args.consulta == "all":
-        for path in PATH.glob("*.sql"):
-            create_process(path, args.formato, processes)
-    else:
-        path = PATH / args.consulta       
-        create_process(path, args.formato, processes)
 
-    for _ in processes:
-        _.join()
+        
+    with mp.Pool() as pool:
+
+        if args.consulta == "all":
+            processes = [pool.apply_async(generar_reporte, args=(path, args.formato,)) for path in PATH.glob("*.sql")]
+            for process in processes:
+                    process.wait()                    
+        else:
+            path = PATH / args.consulta       
+            pool.apply_async(generar_reporte, args=(path, args.formato,))
 
     tiempo_fin = datetime.now()
     tiempo_total = tiempo_fin - tiempo_inicio
     print(f"hora fin: {tiempo_fin.strftime('%H:%M')}")
     print(f"Finalizado en {str(tiempo_total).split('.')[0]}")
     
-    if not args.zip:
-        comprimir()
+    if args.zip: comprimir()

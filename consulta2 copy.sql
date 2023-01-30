@@ -1,0 +1,1 @@
+select * from ee_ged.ee_expediente_electronico where fecha_creacion > trunc(sysdate)

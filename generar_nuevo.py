@@ -24,6 +24,7 @@ class Reporte:
     nombre: str
     formato: Formato
     sql_path: Path
+    generado: bool = False
     
     def generar(self) -> None:
         with engine.connect() as con:
@@ -33,6 +34,8 @@ class Reporte:
                 data.to_excel(f"{self.nombre}.xlsx", index=False)
             if self.formato is Formato.CSV:
                 data.to_csv(f"{self.nombre}.csv", index=False, sep=';')
+            self.generado = True
+        return self
 
 @dataclass
 class ListaReportes:
@@ -61,9 +64,8 @@ def main():
     parser.add_argument("-f", "--formato", default="xlsx", help="Fomato (csv/xlsx)")
     parser.add_argument("-z", "--zip", action='store_true', help="Comprimir en zip")   
     argumentos = parser.parse_args()
-    
-    procesos = []
-    reportes = ListaReportes()
+
+    lista_reportes = ListaReportes()
     
     for path in PATH.glob("*.sql"):
         reporte = Reporte(
@@ -71,15 +73,10 @@ def main():
             formato=Formato.XLSX,
             sql_path=path
         )
-        reportes.agregar_reporte(reporte)
+        lista_reportes.agregar_reporte(reporte)
     
-    for reporte in reportes.all():
-        proceso = mp.Process(target=reporte.generar)
-        procesos.append(proceso)
-        proceso.start()
+    with mp.Pool() as pool:
+        resultado = pool.map(Reporte.generar, lista_reportes.all())
         
-    for _ in procesos:
-        _.join()
-
 if __name__ == "__main__":
     main()
