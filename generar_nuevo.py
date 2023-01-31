@@ -37,6 +37,7 @@ class Reporte:
             self.generado = True
         return self
 
+
 @dataclass
 class ListaReportes:
     reportes: list[Reporte] = field(default_factory=list)
@@ -56,6 +57,10 @@ class ListaReportes:
                     
     def all(self):
         return self.reportes
+    
+    def generar(self) -> None:
+        with mp.Pool() as pool:
+            return pool.map(Reporte.generar, self.reportes) 
 
 
 def main():
@@ -63,20 +68,30 @@ def main():
     parser.add_argument("-c", "--consulta", default="all", help="Archivo SQL")
     parser.add_argument("-f", "--formato", default="xlsx", help="Fomato (csv/xlsx)")
     parser.add_argument("-z", "--zip", action='store_true', help="Comprimir en zip")   
-    argumentos = parser.parse_args()
+    args = parser.parse_args()
 
     lista_reportes = ListaReportes()
+    formato = Formato.CSV if args.formato == "csv" else Formato.XLSX 
     
-    for path in PATH.glob("*.sql"):
+    if args.consulta == "all":
+        for path in PATH.glob("*.sql"):
+            reporte = Reporte(
+                nombre=path.name.split(".")[0],
+                formato=formato,
+                sql_path=path
+            )
+            lista_reportes.agregar_reporte(reporte)
+    else:
         reporte = Reporte(
-            nombre=path.name.split(".")[0],
-            formato=Formato.XLSX,
-            sql_path=path
+            nombre=args.consulta.split(".")[0],
+            formato=formato,
+            sql_path=PATH / args.consulta
         )
         lista_reportes.agregar_reporte(reporte)
     
-    with mp.Pool() as pool:
-        resultado = pool.map(Reporte.generar, lista_reportes.all())
+    lista_reportes.generar()
+    
+    if args.zip: lista_reportes.comprimir_reportes()
         
 if __name__ == "__main__":
     main()
