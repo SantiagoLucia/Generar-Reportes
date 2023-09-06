@@ -1,4 +1,4 @@
 /config.py
 /*.csv
-/*.xlsx
 /*.sql
+__pycache__

@@ -8,38 +8,38 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from config import CON_URL
 
 PATH = Path.cwd()
-engine = sqlalchemy.create_engine(CON_URL)
+engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True)
 
 
 def obtener_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--consulta", default="all", help="Archivo SQL")
-    parser.add_argument("-f", "--formato", default="xlsx", help="Fomato (csv/xlsx)")
     parser.add_argument("-z", "--zip", action="store_true", help="Comprimir en zip")
     return parser.parse_args()
 
 
-def generar_reporte(sql_path: Path, format_: str) -> None:
+def generar_reporte(sql_path: Path) -> None:
     with engine.connect() as conn:
         file = open(sql_path, "r").read()
         print(f"realizando consulta {sql_path.name}")
         query = sqlalchemy.text(file)
-        data = pd.read_sql(query, con=conn)
-        print(f"consulta realizada {sql_path.name}")
-
-    if format_ == "xlsx":
-        data.to_excel(sql_path.name.replace("sql", format_), index=False)
-    if format_ == "csv":
-        data.to_csv(sql_path.name.replace("sql", format_), index=False, sep=";")
+        export_name = sql_path.name.replace("sql", "csv")
+        first_chunk = True
+        for chunk_data in pd.read_sql(query, conn, chunksize=50000):
+            if first_chunk:
+                chunk_data.to_csv(
+                    export_name, index=False, sep=";", mode="a", header=True
+                )
+                first_chunk = False
+            chunk_data.to_csv(export_name, index=False, sep=";", mode="a", header=False)
 
 
 def comprimir() -> None:
     with ZipFile(
         file="reportes.zip", mode="w", compression=ZIP_DEFLATED, compresslevel=9
     ) as zip_:
-        for pattern in ("*.xlsx", "*.csv"):
-            for file_path in PATH.glob(pattern):
-                zip_.write(file_path.name)
+        for file_path in PATH.glob("*.csv"):
+            zip_.write(file_path.name)
 
 
 def main() -> None:
@@ -53,10 +53,7 @@ def main() -> None:
             processes = [
                 pool.apply_async(
                     generar_reporte,
-                    args=(
-                        path,
-                        args.formato,
-                    ),
+                    args=(path,),
                 )
                 for path in PATH.glob("*.sql")
             ]
@@ -66,10 +63,7 @@ def main() -> None:
             path = PATH / args.consulta
             pool.apply_async(
                 generar_reporte,
-                args=(
-                    path,
-                    args.formato,
-                ),
+                args=(path,),
             )
 
     if args.zip:
