@@ -8,6 +8,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from config import CON_URL
 
 PATH = Path.cwd()
+CHUNK_SIZE = 100_000
 
 # stream results for server side cursors (memory optimization)
 engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True)
@@ -26,8 +27,9 @@ def generar_reporte(sql_path: Path) -> None:
         query = sqlalchemy.text(file)
         export_name = sql_path.name.replace("sql", "csv")
         print(f"generando reporte {export_name}")
+
         first_chunk = True
-        for chunk_data in pd.read_sql(query, conn, chunksize=50000):
+        for chunk_data in pd.read_sql(query, conn, chunksize=CHUNK_SIZE):
             if first_chunk:
                 chunk_data.to_csv(
                     f"./salida/{export_name}",
