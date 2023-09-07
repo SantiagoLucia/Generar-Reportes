@@ -8,6 +8,8 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from config import CON_URL
 
 PATH = Path.cwd()
+
+# stream results for server side cursors (memory optimization)
 engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True)
 
 
@@ -21,17 +23,28 @@ def obtener_args():
 def generar_reporte(sql_path: Path) -> None:
     with engine.connect() as conn:
         file = open(sql_path, "r").read()
-        print(f"realizando consulta {sql_path.name}")
         query = sqlalchemy.text(file)
         export_name = sql_path.name.replace("sql", "csv")
+        print(f"generando reporte {export_name}")
         first_chunk = True
         for chunk_data in pd.read_sql(query, conn, chunksize=50000):
             if first_chunk:
                 chunk_data.to_csv(
-                    export_name, index=False, sep=";", mode="a", header=True
+                    f"./salida/{export_name}",
+                    index=False,
+                    sep=";",
+                    mode="a",
+                    header=True,
                 )
                 first_chunk = False
-            chunk_data.to_csv(export_name, index=False, sep=";", mode="a", header=False)
+            chunk_data.to_csv(
+                f"./salida/{export_name}",
+                index=False,
+                sep=";",
+                mode="a",
+                header=False,
+            )
+        print(f"{export_name} finalizado")
 
 
 def comprimir() -> None:
@@ -48,23 +61,17 @@ def main() -> None:
     tiempo_inicio = datetime.now()
     print(f"hora inicio: {tiempo_inicio.strftime('%H:%M')}")
 
-    with mp.Pool() as pool:
+    with mp.Pool(processes=2) as pool:
         if args.consulta == "all":
             processes = [
-                pool.apply_async(
-                    generar_reporte,
-                    args=(path,),
-                )
-                for path in PATH.glob("*.sql")
+                pool.apply_async(generar_reporte, args=(path,))
+                for path in PATH.glob("./consultas/*.sql")
             ]
             for process in processes:
                 process.wait()
         else:
             path = PATH / args.consulta
-            pool.apply_async(
-                generar_reporte,
-                args=(path,),
-            )
+            pool.apply_async(generar_reporte, args=(path,))
 
     if args.zip:
         comprimir()
