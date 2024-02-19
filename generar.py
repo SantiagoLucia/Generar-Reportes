@@ -16,8 +16,8 @@ engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True
 
 def obtener_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--consulta", default="all", help="Archivo SQL")
-    parser.add_argument("-z", "--zip", action="store_true", help="Comprimir en zip")
+    parser.add_argument("--consulta", default="all", help="Archivo SQL")
+    parser.add_argument("--zip", action="store_true", help="Comprimir en zip")
     return parser.parse_args()
 
 
@@ -39,13 +39,14 @@ def generar_reporte(sql_path: Path) -> None:
                     header=True,
                 )
                 first_chunk = False
-            chunk_data.to_csv(
-                f"./salida/{export_name}",
-                index=False,
-                sep=";",
-                mode="a",
-                header=False,
-            )
+            else:
+                chunk_data.to_csv(
+                    f"./salida/{export_name}",
+                    index=False,
+                    sep=";",
+                    mode="a",
+                    header=False,
+                )
         print(f"{export_name} finalizado")
 
 
