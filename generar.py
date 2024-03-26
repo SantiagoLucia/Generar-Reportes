@@ -10,10 +10,6 @@ from config import CON_URL
 PATH = Path.cwd()
 CHUNK_SIZE = 100_000
 
-# stream results for server side cursors (memory optimization)
-engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True)
-
-
 def obtener_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--consulta", default="all", help="Archivo SQL")
@@ -22,6 +18,9 @@ def obtener_args():
 
 
 def generar_reporte(sql_path: Path) -> None:
+    # stream results for server side cursors (memory optimization)
+    engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True)
+    
     with engine.connect() as conn:
         file = open(sql_path, "r").read()
         query = sqlalchemy.text(file)
