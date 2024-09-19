@@ -25,7 +25,6 @@ def generar_reporte(sql_path: Path) -> None:
         file = open(sql_path, "r").read()
         query = sqlalchemy.text(file)
         export_name = sql_path.name.replace("sql", "csv")
-        print(f"generando reporte {export_name}")
 
         first_chunk = True
         for chunk_data in pd.read_sql(query, conn, chunksize=CHUNK_SIZE):
@@ -46,7 +45,6 @@ def generar_reporte(sql_path: Path) -> None:
                     mode="a",
                     header=False,
                 )
-        print(f"{export_name} finalizado")
 
 
 def comprimir() -> None:
@@ -59,9 +57,6 @@ def comprimir() -> None:
 
 def main() -> None:
     args = obtener_args()
-
-    tiempo_inicio = datetime.now()
-    print(f"hora inicio: {tiempo_inicio.strftime('%H:%M')}")
 
     with mp.Pool(processes=2) as pool:
         if args.consulta == "all":
@@ -77,11 +72,6 @@ def main() -> None:
 
     if args.zip:
         comprimir()
-
-    tiempo_fin = datetime.now()
-    tiempo_total = tiempo_fin - tiempo_inicio
-    print(f"hora fin: {tiempo_fin.strftime('%H:%M')}")
-    print(f"Finalizado en {str(tiempo_total).split('.')[0]}")
 
 
 if __name__ == "__main__":
