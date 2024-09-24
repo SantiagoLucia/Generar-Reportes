@@ -1,6 +1,7 @@
 /config.py
 /*.csv
 /*.sql
+/*ini
 __pycache__
 consultas
 salida
