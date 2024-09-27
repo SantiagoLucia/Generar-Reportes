@@ -16,32 +16,16 @@ from email import encoders
 
 
 config = configparser.ConfigParser()
+config.read("config.ini")
 try:
-    config.read("config.ini")
     DB_USER = config["ORACLE"]["USER"]
     DB_PASSWORD = config["ORACLE"]["PASSWORD"]
     DB_HOST = config["ORACLE"]["HOST"]
     DB_PORT = config["ORACLE"]["PORT"]
     DB_SERVICE_NAME = config["ORACLE"]["SERVICE_NAME"]
-
-    SFTP_HOST = config["SFTP"]["HOST"]
-    SFTP_USER = config["SFTP"]["USER"]
-    SFTP_PASSWORD = config["SFTP"]["PASSWORD"]
-    SFTP_DIR = config["SFTP"]["DIR"]
-
-    SMTP_HOST = config["SMTP"]["HOST"]
-    SMTP_PORT = config["SMTP"]["PORT"]
-    SMTP_USER = config["SMTP"]["USER"]
-    SMTP_PASSWORD = config["SMTP"]["PASSWORD"]
-    SMTP_TO = config["SMTP"]["TO"]
-    SMTP_FROM = config["SMTP"]["FROM"]
-    SMTP_SUBJECT = config["SMTP"]["SUBJECT"]
-    SMTP_BODY = config["SMTP"]["BODY"]
-
     LOGFILE = config["LOGGING"]["LOGFILE"]
     CHUNK_SIZE = int(config["GENERAL"]["CHUNK_SIZE"])
     PROCESSES = int(config["GENERAL"]["PROCESSES"])
-
 except KeyError as e:
     raise KeyError(f"Falta la clave {e} en el archivo de configuración.")
 
@@ -140,6 +124,14 @@ def enviar_sftp(file_path: Path) -> None:
         file_path (Path): Ruta del archivo a enviar.
     """
     try:
+        SFTP_HOST = config["SFTP"]["HOST"]
+        SFTP_USER = config["SFTP"]["USER"]
+        SFTP_PASSWORD = config["SFTP"]["PASSWORD"]
+        SFTP_DIR = config["SFTP"]["DIR"]
+    except KeyError as e:
+        raise KeyError(f"Falta la clave {e} en el archivo de configuración.")
+        
+    try:
         with pysftp.Connection(SFTP_HOST, username=SFTP_USER, password=SFTP_PASSWORD) as sftp:
             with sftp.cd(SFTP_DIR):
                 sftp.put(file_path)
@@ -151,6 +143,17 @@ def enviar_email_con_adjunto(file_path: Path) -> None:
     """
     Enviar un correo electrónico con un archivo adjunto.
     """
+    try:
+        SMTP_HOST = config["SMTP"]["HOST"]
+        SMTP_PORT = config["SMTP"]["PORT"]
+        SMTP_USER = config["SMTP"]["USER"]
+        SMTP_PASSWORD = config["SMTP"]["PASSWORD"]
+        SMTP_TO = config["SMTP"]["TO"]
+        SMTP_SUBJECT = config["SMTP"]["SUBJECT"]
+        SMTP_BODY = config["SMTP"]["BODY"]
+    except KeyError as e:
+        raise KeyError(f"Falta la clave {e} en el archivo de configuración.")
+        
     try:
         # Crear el objeto del mensaje
         msg = MIMEMultipart()
@@ -171,10 +174,10 @@ def enviar_email_con_adjunto(file_path: Path) -> None:
             msg.attach(part)
 
         # Conectar al servidor SMTP
-        with smtplib.SMTP(SFTP_HOST, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()  # Usar TLS (Transport Layer Security)
             # Autenticarse
-            server.login(SFTP_USER, SFTP_PASSWORD)
+            server.login(SMTP_USER, SMTP_PASSWORD)
             # Enviar el correo
             text = msg.as_string()
             server.sendmail(SMTP_USER, SMTP_TO, text)    
