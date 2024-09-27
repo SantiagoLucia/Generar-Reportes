@@ -52,3 +52,11 @@ Este proyecto permite generar reportes a partir de consultas SQL y exportarlos a
     ```sh
     python generar.py --consulta all --zip --smtp
     ```
+
+## Estructura del Proyecto
+
+**generar.py**: Script principal para generar reportes, comprimir archivos y enviarlos por SFTP o correo electrónico.
+**config.ini**: Archivo de configuración con las credenciales de la base de datos y configuración de SFTP y SMTP.
+**consultas/**: Directorio que contiene los archivos SQL para las consultas.
+**salida/**: Directorio donde se guardan los archivos CSV generados.
+**reportes.zip**: Archivo ZIP que contiene los archivos CSV comprimidos.
