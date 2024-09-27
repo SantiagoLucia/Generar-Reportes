@@ -5,6 +5,7 @@ import pandas as pd
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 import configparser
+import logging
 
 config = configparser.ConfigParser()
 try:
@@ -21,6 +22,16 @@ CON_URL = f"oracle+oracledb://{USER}:{PASSWORD}@{HOST}:{PORT}/?service_name={SER
 
 PATH = Path.cwd()
 CHUNK_SIZE = 10000
+LOGFILE = "generar.log"
+
+# Configuración del logger
+logging.basicConfig(filename=LOGFILE, level=logging.INFO, format='%(asctime)s - %(message)s')
+logger = logging.getLogger(name=LOGFILE)
+
+
+def log_result(result: str) -> None:
+    logger.info(result)
+
 
 def obtener_args():
     """
@@ -34,13 +45,14 @@ def obtener_args():
     parser.add_argument("--zip", action="store_true", help="Comprimir el resultado en un archivo zip.")
     return parser.parse_args()
 
-def generar_reporte(sql_path: Path) -> None:
+def generar_reporte(sql_path: Path) -> str:
     """
     Generar un reporte a partir de una consulta SQL y exportarlo a un archivo CSV.
 
     Args:
         sql_path (Path): Ruta del archivo SQL.
     """
+    cantidad_registros = 0
     try:
         # Crear el motor de SQLAlchemy con opciones de optimización de memoria
         engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True)
@@ -63,6 +75,12 @@ def generar_reporte(sql_path: Path) -> None:
                     header=first_chunk,
                 )
                 first_chunk = False
+                cantidad_registros += len(chunk_data)
+
+        return f"Reporte {export_name} generado con {cantidad_registros} registros."        
+            
+
+
     except Exception as e:
         print(f"Error al generar el reporte: {e}")
 
@@ -89,7 +107,7 @@ def main() -> None:
         with mp.Pool(processes=4) as pool:  # Aumentar el número de procesos a 4
             if args.consulta == "all":
                 processes = [
-                    pool.apply_async(generar_reporte, args=(path,))
+                    pool.apply_async(generar_reporte, args=(path,), callback=log_result)
                     for path in Path("./consultas").glob("*.sql")
                 ]
                 for process in processes:
