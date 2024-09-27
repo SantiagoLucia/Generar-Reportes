@@ -1,9 +1,6 @@
-/config.py
-/*.csv
-/*.sql
-/*.ini
-/*.log
+/conf/config.ini
+/salida/*.*
+/consultas/*.sql
+/logs/*.log
 /*.zip
 __pycache__
-consultas
-salida
