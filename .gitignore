@@ -3,6 +3,7 @@
 /*.sql
 /*.ini
 /*.log
+/*.zip
 __pycache__
 consultas
 salida

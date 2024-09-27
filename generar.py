@@ -57,7 +57,7 @@ def obtener_args():
     parser = argparse.ArgumentParser(description="Procesar argumentos para la generación de reportes.")
     parser.add_argument("--consulta", default="all", help="Archivo SQL a utilizar para la consulta.")
     parser.add_argument("--zip", action="store_true", help="Comprimir el resultado en un archivo zip.")
-    parser.add_argument("--sftp", help="Enviar el archivo por SFTP si fue previamente comprimido.")
+    parser.add_argument("--sftp", action="store_true", help="Enviar el archivo por SFTP si fue previamente comprimido.")
     parser.add_argument("--smtp", help="Enviar el archivo por correo electrónico si fue previamente comprimido.")
     return parser.parse_args()
 
@@ -98,7 +98,7 @@ def generar_reporte(sql_path: Path) -> str:
             hours, minutes, seconds = format_time(elapsed_time)
         return f"Reporte {export_name} generado con {cantidad_registros} registros en {hours} horas, {minutes} minutos y {seconds:.2f} segundos."        
     except Exception as e:
-        print(f"Error al generar el reporte: {e}")
+        log_result(f"Error al generar el reporte: {e}")
 
 def comprimir() -> None:
     """
@@ -114,7 +114,8 @@ def comprimir() -> None:
         zip_size = zip_size / (1024 * 1024)
         log_result(f"Archivo comprimido reportes.zip de {zip_size:.2f} MB generado.")    
     except Exception as e:
-        print(f"Error al comprimir archivos: {e}")
+        log_result(f"Error al comprimir archivos: {e}")
+        raise e
 
 def enviar_sftp(file_path: Path) -> None:
     """
@@ -132,12 +133,15 @@ def enviar_sftp(file_path: Path) -> None:
         raise KeyError(f"Falta la clave {e} en el archivo de configuración.")
         
     try:
-        with pysftp.Connection(SFTP_HOST, username=SFTP_USER, password=SFTP_PASSWORD) as sftp:
+        cnopts = pysftp.CnOpts()
+        cnopts.hostkeys = None
+        with pysftp.Connection(SFTP_HOST, username=SFTP_USER, password=SFTP_PASSWORD, cnopts=cnopts, log=False) as sftp:
             with sftp.cd(SFTP_DIR):
                 sftp.put(file_path)
         log_result(f"Archivo {file_path.name} enviado por SFTP.")        
     except Exception as e:
         log_result(f"Error al enviar archivo por SFTP: {e}")
+        raise e
 
 def enviar_email_con_adjunto(file_path: Path) -> None:
     """
@@ -183,6 +187,7 @@ def enviar_email_con_adjunto(file_path: Path) -> None:
             server.sendmail(SMTP_USER, SMTP_TO, text)    
     except Exception as e:
         log_result(f"Error al enviar correo electrónico: {e}")
+        raise e
 
 def main() -> None:
     """
