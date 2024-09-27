@@ -2,6 +2,7 @@
 /*.csv
 /*.sql
 /*ini
+/*.log
 __pycache__
 consultas
 salida
