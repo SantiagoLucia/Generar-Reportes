@@ -6,42 +6,79 @@ from file_utils import comprimir
 from sftp_utils import enviar_sftp
 from email_utils import enviar_email_con_adjunto
 from logger import log_result
-import argparse
+import inquirer
+import tqdm
 
 config = cargar_config()
 
-def obtener_args():
-    parser = argparse.ArgumentParser(description="Procesar argumentos para la generación de reportes.")
-    parser.add_argument("--consulta", default="all", help="Archivo SQL a utilizar para la consulta.")
-    parser.add_argument("--zip", action="store_true", help="Comprimir el resultado en un archivo zip.")
-    parser.add_argument("--sftp", action="store_true", help="Enviar el archivo por SFTP si fue previamente comprimido.")
-    parser.add_argument("--smtp", action="store_true", help="Enviar el archivo por correo electrónico si fue previamente comprimido.")
-    return parser.parse_args()
+def obtener_args(consultas_dir: str = "../consultas") -> dict:
+    """
+    Obtiene las consultas SQL y los protocolos de envío seleccionados por el usuario.
 
-def main():
+    Args:
+        consultas_dir (str): Directorio donde se encuentran las consultas SQL.
+
+    Returns:
+        dict: Diccionario con las consultas y protocolos seleccionados.
+    """
+    consultas_path = Path(consultas_dir)
+    sql_files = list(consultas_path.glob("*.sql"))
+    
+    if not sql_files:
+        raise FileNotFoundError(f"No se encontraron archivos .sql en el directorio {consultas_dir}")
+
+    questions = [
+        inquirer.Checkbox(
+            "consultas",
+            message="Seleccione las consultas a ejecutar (<espacio> para seleccionar, <ctrl+a> para seleccionar todo)",
+            choices=[(path.name, path) for path in sql_files],
+        )
+    ]
+    answers = inquirer.prompt(questions)
+    path_consultas = answers["consultas"]
+
+    questions = [
+        inquirer.Checkbox(
+            "Protocolos",
+            message="Seleccione los protocolos de envío (<espacio> para seleccionar, <ctrl+a> para seleccionar todo)",
+            choices=["SFTP", "SMTP"],
+        )
+    ]
+    answers = inquirer.prompt(questions)
+    modos_envio = answers["Protocolos"]
+
+    if not path_consultas:
+        raise ValueError("Debe seleccionar al menos una consulta.")
+
+    return {"consultas": path_consultas, "protocolos": modos_envio}
+
+
+def main() -> None:
     args = obtener_args()
 
     try:
         processes = int(config["GENERAL"]["PROCESSES"])
         with mp.Pool(processes=processes) as pool:
-            if args.consulta == "all":
-                processes = [
-                    pool.apply_async(generar_reporte, args=(path,), callback=log_result)
-                    for path in Path("../consultas").glob("*.sql")
-                ]
+            processes = [
+                pool.apply_async(generar_reporte, args=(path,), callback=log_result)
+                for path in args["consultas"]
+            ]
+            
+            for process in tqdm.tqdm(processes, desc="Generando reportes", total=len(processes)):
+                process.get()
 
-                for process in processes:
-                    process.get()
-            else:
-                pool.apply_async(generar_reporte, args=(Path("../consultas") / args.consulta,)).get()
+        comprimir()
 
-        if args.zip:
-            comprimir()
-            if args.sftp:
-                enviar_sftp(Path("../salida/reportes.zip"))
-            if args.smtp:
-                enviar_email_con_adjunto(Path("../salida/reportes.zip"))
+        if "SFTP" in args["protocolos"]:
+            enviar_sftp(Path("../salida/reportes.zip"))
+        
+        if "SMTP" in args["protocolos"]:
+            enviar_email_con_adjunto(Path("../salida/reportes.zip"))
 
+    except KeyError as e:
+        log_result(f"Clave de configuración faltante: {e}")
+    except ValueError as e:
+        log_result(f"Valor inválido: {e}")
     except Exception as e:
         log_result(f"Error durante la ejecución: {e}")
 
