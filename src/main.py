@@ -2,7 +2,7 @@ import multiprocessing as mp
 from pathlib import Path
 from config import cargar_config
 from report_generator import generar_reporte
-from file_utils import comprimir
+from file_utils import comprimir, eliminar_archivos_csv
 from sftp_utils import enviar_sftp
 from email_utils import enviar_email_con_adjunto
 from logger import log_result
@@ -11,21 +11,18 @@ import tqdm
 
 config = cargar_config()
 
-def obtener_args(consultas_dir: str = "../consultas") -> dict:
+def obtener_args() -> dict:
     """
     Obtiene las consultas SQL y los protocolos de envío seleccionados por el usuario.
-
-    Args:
-        consultas_dir (str): Directorio donde se encuentran las consultas SQL.
 
     Returns:
         dict: Diccionario con las consultas y protocolos seleccionados.
     """
-    consultas_path = Path(consultas_dir)
+    consultas_path = Path(config["RUTAS"]["CONSULTAS"])
     sql_files = list(consultas_path.glob("*.sql"))
     
     if not sql_files:
-        raise FileNotFoundError(f"No se encontraron archivos .sql en el directorio {consultas_dir}")
+        raise FileNotFoundError(f"No se encontraron archivos .sql en el directorio {config["RUTAS"]["CONSULTAS"]}")
 
     questions = [
         inquirer.Checkbox(
@@ -54,8 +51,6 @@ def obtener_args(consultas_dir: str = "../consultas") -> dict:
 
 
 def main() -> None:
-    directorio_salida = Path("../salida")
-    archivo_salida = directorio_salida / "reportes.zip"
 
     args = obtener_args()
 
@@ -70,13 +65,14 @@ def main() -> None:
             for process in tqdm.tqdm(processes, desc="Generando reportes", total=len(processes)):
                 process.get()
 
-        comprimir(directorio_salida, archivo_salida)
+        comprimir()
+        eliminar_archivos_csv()
 
         if "SFTP" in args["protocolos"]:
-            enviar_sftp(archivo_salida)
+            enviar_sftp()
         
         if "SMTP" in args["protocolos"]:
-            enviar_email_con_adjunto(archivo_salida)
+            enviar_email_con_adjunto()
 
     except KeyError as e:
         log_result(f"Clave de configuración faltante: {e}")

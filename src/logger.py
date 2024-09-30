@@ -1,9 +1,12 @@
 import logging
 from pathlib import Path
+from config import cargar_config
+
+config = cargar_config()
 
 def log_result(result: str) -> None:
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(filename=Path("../logs/app.log"), level=logging.INFO, format='%(asctime)s - %(message)s')
+    logger = logging.getLogger()
+    logging.basicConfig(filename=Path(config["RUTAS"]["LOGFILE"]), level=logging.INFO, format='%(asctime)s - %(message)s')
     logger.info(result)
 
 def format_time(seconds: float) -> tuple:

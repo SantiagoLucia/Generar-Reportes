@@ -6,25 +6,23 @@ from logger import log_result, format_time
 from config import cargar_config
 
 config = cargar_config()
-CHUNK_SIZE = int(config["GENERAL"]["CHUNK_SIZE"])
-CON_URL = config["ORACLE"]["CON_URL"]
 
 def generar_reporte(sql_path: Path) -> str:
     cantidad_registros = 0
     try:
-        engine = sqlalchemy.create_engine(CON_URL).execution_options(stream_results=True)
+        engine = sqlalchemy.create_engine(config["ORACLE"]["CON_URL"]).execution_options(stream_results=True)
         
         with engine.connect() as conn:
             with open(sql_path, "r") as file:
                 query = sqlalchemy.text(file.read().rstrip(";"))
 
             export_name = sql_path.name.replace("sql", "csv")
-            output_path = Path("../salida") / export_name
+            output_path = Path(config["RUTAS"]["SALIDA"]) / export_name
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             first_chunk = True
             start_time = time.perf_counter()
-            for chunk_data in pd.read_sql(query, conn, chunksize=CHUNK_SIZE):
+            for chunk_data in pd.read_sql(query, conn, chunksize=int(config["GENERAL"]["CHUNK_SIZE"])):
                 chunk_data.to_csv(output_path, index=False, sep=";", mode="a", header=first_chunk, encoding="windows-1252")
                 first_chunk = False
                 cantidad_registros += len(chunk_data)
