@@ -54,6 +54,9 @@ def obtener_args(consultas_dir: str = "../consultas") -> dict:
 
 
 def main() -> None:
+    directorio_salida = Path("../salida")
+    archivo_salida = directorio_salida / "reportes.zip"
+
     args = obtener_args()
 
     try:
@@ -67,13 +70,13 @@ def main() -> None:
             for process in tqdm.tqdm(processes, desc="Generando reportes", total=len(processes)):
                 process.get()
 
-        comprimir()
+        comprimir(directorio_salida, archivo_salida)
 
         if "SFTP" in args["protocolos"]:
-            enviar_sftp(Path("../salida/reportes.zip"))
+            enviar_sftp(archivo_salida)
         
         if "SMTP" in args["protocolos"]:
-            enviar_email_con_adjunto(Path("../salida/reportes.zip"))
+            enviar_email_con_adjunto(archivo_salida)
 
     except KeyError as e:
         log_result(f"Clave de configuración faltante: {e}")

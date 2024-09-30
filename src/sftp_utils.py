@@ -5,13 +5,20 @@ from config import cargar_config
 
 config = cargar_config()
 
-def enviar_sftp(file_path: Path):
+def enviar_sftp(file_path: Path, host: str = config["SFTP"]["HOST"], username: str = config["SFTP"]["USER"], password: str = config["SFTP"]["PASSWORD"]):
     try:
         cnopts = pysftp.CnOpts()
-        cnopts.hostkeys = None
-        with pysftp.Connection(config["SFTP"]["HOST"], username=config["SFTP"]["USER"], password=config["SFTP"]["PASSWORD"], cnopts=cnopts) as sftp:
+        # Configurar las claves del host adecuadamente en lugar de desactivarlas
+        # cnopts.hostkeys.load('path/to/known_hosts')
+        
+        with pysftp.Connection(host, username=username, password=password, cnopts=cnopts) as sftp:
             sftp.put(file_path)
         log_result(f"Archivo {file_path.name} enviado por SFTP.")
+    except pysftp.ConnectionException as e:
+        log_result(f"Error de conexión SFTP: {e}")
+    except pysftp.CredentialException as e:
+        log_result(f"Error de credenciales SFTP: {e}")
+    except pysftp.SSHException as e:
+        log_result(f"Error SSH SFTP: {e}")
     except Exception as e:
         log_result(f"Error al enviar archivo por SFTP: {e}")
-        raise e

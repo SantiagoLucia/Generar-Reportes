@@ -30,7 +30,10 @@ def enviar_email_con_adjunto(file_path: Path):
             server.login(config["SMTP"]["USER"], config["SMTP"]["PASSWORD"])
             server.sendmail(config["SMTP"]["USER"], config["SMTP"]["TO"], msg.as_string())
 
-        log_result(f"Correo enviado con archivo {file_path.name} adjunto.")
+        log_result(f"Correo enviado con archivo {file_path.name} adjunto a {msg['To']}.")
+    except FileNotFoundError:
+        log_result(f"El archivo {file_path} no existe.")
+    except smtplib.SMTPException as e:
+        log_result(f"Error SMTP al enviar correo: {e}")
     except Exception as e:
         log_result(f"Error al enviar correo: {e}")
-        raise e
