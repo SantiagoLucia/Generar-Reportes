@@ -8,6 +8,15 @@ from config import cargar_config
 config = cargar_config()
 
 def generar_reporte(sql_path: Path) -> str:
+    """
+    Genera un reporte a partir de una consulta SQL.
+    
+    Args:
+        sql_path (Path): Ruta del archivo SQL.
+    
+    Returns:
+        str: Mensaje con el resultado de la operación.
+    """
     cantidad_registros = 0
     try:
         engine = sqlalchemy.create_engine(config["ORACLE"]["CON_URL"]).execution_options(stream_results=True)

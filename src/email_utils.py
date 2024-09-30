@@ -9,7 +9,10 @@ from config import cargar_config
 
 config = cargar_config()
 
-def enviar_email_con_adjunto():
+def enviar_email_con_adjunto() -> None:
+    """
+    Envía un correo con el archivo comprimido adjunto.
+    """
     path_salida = Path(config["RUTAS"]["SALIDA"])
     archivo_salida = path_salida / "reportes.zip"
     try:

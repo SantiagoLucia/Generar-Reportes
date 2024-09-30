@@ -8,6 +8,9 @@ config = cargar_config()
 path_salida = Path(config["RUTAS"]["SALIDA"])
 
 def eliminar_archivos_csv():
+    """
+    Elimina los archivos CSV generados en la carpeta de salida.
+    """
     try:
         archivos_csv = list(path_salida.glob("*.csv"))
         for file in archivos_csv:
@@ -19,6 +22,9 @@ def eliminar_archivos_csv():
         log_result(f"Error al eliminar archivos: {e}")
 
 def comprimir():
+    """
+    Comprime los archivos CSV generados en la carpeta de salida en un archivo ZIP.
+    """
     archivo_salida = path_salida / f"reportes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
     try:
         archivos_csv = list(path_salida.glob("*.csv"))

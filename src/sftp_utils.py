@@ -6,6 +6,9 @@ from config import cargar_config
 config = cargar_config()
 
 def enviar_sftp():
+    """
+    Envía el archivo comprimido por SFTP.
+    """
     path_salida = Path(config["RUTAS"]["SALIDA"])
     archivo_salida = path_salida / "reportes.zip"
     host = config["SFTP"]["HOST"]
